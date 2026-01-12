@@ -18,8 +18,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ###############################################################################
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
+
 
 import argparse
 import datetime
@@ -51,10 +50,10 @@ class St(bt.Strategy):
         pass
 
     def start(self):
-        self.t0 = datetime.datetime.utcnow()
+        self.t0 = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
 
     def stop(self):
-        t1 = datetime.datetime.utcnow()
+        t1 = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
         print('Duration:', t1 - self.t0)
 
     def prenext(self):

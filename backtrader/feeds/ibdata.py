@@ -18,8 +18,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ###############################################################################
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
+
 
 import datetime
 
@@ -453,7 +452,7 @@ class IBData(with_metaclass(MetaIBData, DataBase)):
                         return None  # indicate timeout situation
 
                     # Awaiting data and nothing came in - fake it up until now
-                    dtend = self.num2date(date2num(datetime.datetime.utcnow()))
+                    dtend = self.num2date(date2num(datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)))
                     dtbegin = None
                     if len(self) > 1:
                         dtbegin = self.num2date(self.datetime[-1])

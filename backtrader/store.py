@@ -18,13 +18,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ###############################################################################
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
 
 import collections
 
 from backtrader.metabase import MetaParams
 from backtrader.utils.py3 import with_metaclass
+
+
 
 
 class MetaSingleton(MetaParams):

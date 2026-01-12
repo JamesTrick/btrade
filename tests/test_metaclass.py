@@ -26,6 +26,8 @@ class TestFrompackages(testcommon.SampleParamsHolder):
     uses `frompackages` import mechanism, doesnt brake the functionality
     of the base class.
     """
+    __test__ = False
+
     def __init__(self):
         super(TestFrompackages, self).__init__()
         # Prepare the lags array

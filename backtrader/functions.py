@@ -18,8 +18,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ###############################################################################
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
 
 import functools
 import math
@@ -29,6 +27,8 @@ from .utils.py3 import cmp, range
 
 
 # Generate a List equivalent which uses "is" for contains
+
+
 class List(list):
     def __contains__(self, other):
         return any(x.__hash__() == other.__hash__() for x in self)

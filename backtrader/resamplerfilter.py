@@ -18,8 +18,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ###############################################################################
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
 
 
 from datetime import datetime, date, timedelta
@@ -28,6 +26,8 @@ from .dataseries import TimeFrame, _Bar
 from .utils.py3 import with_metaclass
 from . import metabase
 from .utils.date import date2num, num2date
+
+
 
 
 class DTFaker(object):
@@ -52,7 +52,7 @@ class DTFaker(object):
         self.p = self
 
         if forcedata is None:
-            _dtime = datetime.utcnow() + data._timeoffset()
+            _dtime = datetime.now(datetime.timezone.utc).replace(tzinfo=None) + data._timeoffset()
             self._dt = dt = date2num(_dtime)  # utc-like time
             self._dtime = data.num2date(dt)  # localized time
         else:

@@ -18,8 +18,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ###############################################################################
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
+                        
 
 import time
 
@@ -33,6 +32,7 @@ chkdatas = 1
 
 
 class TestStrategy(bt.Strategy):
+    __test__ = False
     params = dict(main=False)
 
     def __init__(self):

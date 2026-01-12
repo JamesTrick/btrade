@@ -18,8 +18,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ###############################################################################
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
+                        
 
 import time
 try:
@@ -35,6 +34,8 @@ from backtrader.utils.py3 import PY2
 
 
 class TestStrategy(bt.Strategy):
+    __test__ = False
+    
     params = (
         ('period', 15),
         ('printdata', True),

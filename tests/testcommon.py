@@ -18,8 +18,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ###############################################################################
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
+
 
 import datetime
 import os
@@ -118,6 +117,7 @@ def runtest(datas,
 
 
 class TestStrategy(bt.Strategy):
+    __test__ = False
     params = dict(main=False,
                   chkind=[],
                   inddata=[],

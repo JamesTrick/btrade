@@ -28,8 +28,6 @@ lines at once.
 .. moduleauthor:: Daniel Rodriguez
 
 '''
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
 
 import sys
 
@@ -39,6 +37,8 @@ from .linebuffer import LineBuffer, LineActions, LinesOperation, LineDelay, NAN
 from .lineroot import LineRoot, LineSingle, LineMultiple
 from .metabase import AutoInfoClass
 from . import metabase
+
+
 
 
 class LineAlias(object):

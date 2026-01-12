@@ -18,8 +18,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ###############################################################################
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
+
 
 import collections
 from datetime import datetime, timedelta
@@ -472,7 +471,7 @@ class OandaStore(with_metaclass(MetaSingleton, object)):
             okwargs['price'] = order.created.price
             if order.valid is None:
                 # 1 year and datetime.max fail ... 1 month works
-                valid = datetime.utcnow() + timedelta(days=30)
+                valid = datetime.now(datetime.timezone.utc).replace(tzinfo=None) + timedelta(days=30)
             else:
                 valid = order.data.num2date(order.valid)
                 # To timestamp with seconds precision
