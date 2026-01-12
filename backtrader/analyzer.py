@@ -18,8 +18,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ###############################################################################
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
 
 import calendar
 from collections import OrderedDict
@@ -29,6 +27,7 @@ import pprint as pp
 import backtrader as bt
 from backtrader import TimeFrame
 from backtrader.utils.py3 import MAXINT, with_metaclass
+
 
 
 class MetaAnalyzer(bt.MetaParams):

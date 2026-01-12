@@ -18,8 +18,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ###############################################################################
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
+
 
 import collections
 from copy import copy
@@ -44,7 +43,7 @@ bytes = bstr  # py2/3 need for ibpy
 def _ts2dt(tstamp=None):
     # Transforms a RTVolume timestamp to a datetime object
     if not tstamp:
-        return datetime.utcnow()
+        return datetime.now(datetime.timezone.utc).replace(tzinfo=None)
 
     sec, msec = divmod(long(tstamp), 1000)
     usec = msec * 1000
@@ -968,7 +967,7 @@ class IBStore(with_metaclass(MetaSingleton, object)):
                 else:
                     dteosutc = dteos
 
-                if dteosutc <= datetime.utcnow():
+                if dteosutc <= datetime.now(datetime.timezone.utc).replace(tzinfo=None):
                     dt = dteosutc
 
                 msg.date = dt

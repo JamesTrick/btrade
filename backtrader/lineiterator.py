@@ -18,8 +18,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ###############################################################################
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
 
 import collections
 import operator
@@ -33,6 +31,8 @@ from .linebuffer import LineActions, LineNum
 from .lineseries import LineSeries, LineSeriesMaker
 from .dataseries import DataSeries
 from . import metabase
+
+
 
 
 class MetaLineIterator(LineSeries.__class__):

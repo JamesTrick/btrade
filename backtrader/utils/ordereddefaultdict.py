@@ -20,12 +20,12 @@
 ###############################################################################
 # From: http://stackoverflow.com/questions/4126348/how-do-i-rewrite-this-function-to-implement-ordereddict/4127426#4127426
 ###############################################################################
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
 
 from collections import OrderedDict
 
 from .py3 import iteritems
+
+
 
 
 class OrderedDefaultdict(OrderedDict):

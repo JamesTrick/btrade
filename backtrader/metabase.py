@@ -18,8 +18,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ###############################################################################
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
 
 from collections import OrderedDict
 import itertools
@@ -27,6 +25,8 @@ import sys
 
 import backtrader as bt
 from .utils.py3 import zip, string_types, with_metaclass
+
+
 
 
 def findbases(kls, topclass):
