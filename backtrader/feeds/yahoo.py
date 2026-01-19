@@ -18,15 +18,17 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ###############################################################################
-                        
-
+import asyncio
 import collections
 from datetime import date, datetime
 import io
 import itertools
+from typing import Iterable
 
-from ..utils.py3 import (urlopen, urlquote, ProxyHandler, build_opener,
-                         install_opener)
+import httpx
+import pandas as pd
+
+from .base import Bar, BarSeries
 
 import backtrader as bt
 from .. import feed
@@ -177,31 +179,87 @@ class YahooFinanceCSVData(feed.CSVDataBase):
         return True
 
 
-class YahooLegacyCSV(YahooFinanceCSVData):
-    '''
-    This is intended to load files which were downloaded before Yahoo
-    discontinued the original service in May-2017
-
-    '''
-    params = (
-        ('version', ''),
-    )
-
 
 class YahooFinanceCSV(feed.CSVFeedBase):
     DataCls = YahooFinanceCSVData
 
 
-class YahooFinanceData(YahooFinanceCSVData):
-    '''
-    Executes a direct download of data from Yahoo servers for the given time
-    range.
+class YahooFetcher:
+    """Fetch to collect data from YahooFinance. Some errors you may receive:
+
+    * Error 429: This is where the rate limit is received. Commonly used when no Headers are used. Try changing the
+    headers of the fetcher to overcome this.
+    """
+    BASE_URL = "https://query1.finance.yahoo.com/v8/finance/chart/"
+    HEADERS = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+    }
+
+    def __init__(self, client: httpx.AsyncClient = None):
+        self.client = client or httpx.AsyncClient(headers=self.HEADERS, follow_redirects=True)
+
+    async def fetch_data(self, symbol: str, start: datetime, end: datetime, timeframe: str = "1d") -> BarSeries:
+        """
+
+        Args:
+            symbol: String symbol of ticker you wish to fetch.
+            start: Start date time of ticker you wish to fetch.
+            end: End date time of ticker you wish to fetch.
+            timeframe: Time period you wish to fetch.
+
+        Returns:
+
+        """
+        params = {
+            "period1": int(start.timestamp()),
+            "period2": int(end.timestamp()),
+            "interval": timeframe,
+            "events": "history"
+        }
+
+        response = await self.client.get(f"{self.BASE_URL}{symbol}", params=params)
+        response.raise_for_status()
+        data = response.json()
+        if data.get("chart", {}).get("error"):
+            raise ValueError(f"Yahoo API Error: {data['chart']['error']}")
+
+        result = data["chart"]["result"][0]
+        if "timestamp" not in result:
+            print(f"WARNING: No trading data found for {symbol} between {start} and {end}.")
+            return pd.DataFrame(columns=["open", "high", "low", "close", "volume"])
+
+        timestamps = result["timestamp"]
+        ohlcv = result["indicators"]["quote"][0]
+
+        bars = []
+
+        for i, ts in enumerate(timestamps):
+            # Skip bars with None values
+            if any(ohlcv[k][i] is None for k in ["open", "high", "low", "close"]):
+                continue
+
+            bars.append(Bar(
+                timestamp=datetime.fromtimestamp(ts),
+                open=ohlcv["open"][i],
+                high=ohlcv["high"][i],
+                low=ohlcv["low"][i],
+                close=ohlcv["close"][i],
+                volume=ohlcv["volume"][i] or 0.0
+            ))
+
+        return BarSeries(bars=bars, symbol=symbol, timeframe=timeframe)
+
+
+
+class YahooFinanceData(bt.feed.DataBase):
+    '''YahooFinanceData collects data from the YahooFinance API.
 
     Specific parameters (or specific meaning):
 
       - ``dataname``
 
-        The ticker to download ('YHOO' for Yahoo own stock quotes)
+        The ticker to download ('NVDA' for Nividia's stock quotes)
 
       - ``proxies``
 
@@ -241,118 +299,52 @@ class YahooFinanceData(YahooFinanceCSVData):
       '''
 
     params = (
-        ('proxies', {}),
-        ('period', 'd'),
-        ('reverse', False),
-        ('urlhist', 'https://finance.yahoo.com/quote/{}/history'),
-        ('urldown', 'https://query1.finance.yahoo.com/v7/finance/download'),
-        ('retries', 3),
+        ('fetcher', None),
+        ('fromdate', None),
+        ('todate', None),
+        ('timeframe', bt.TimeFrame.Days),
     )
 
-    def start_v7(self):
-        try:
-            import requests
-        except ImportError:
-            msg = ('The new Yahoo data feed requires to have the requests '
-                   'module installed. Please use pip install requests or '
-                   'the method of your choice')
-            raise Exception(msg)
-
-        self.error = None
-        url = self.p.urlhist.format(self.p.dataname)
-
-        sesskwargs = dict()
-        if self.p.proxies:
-            sesskwargs['proxies'] = self.p.proxies
-
-        crumb = None
-        sess = requests.Session()
-        sess.headers['User-Agent'] = 'backtrader'
-        for i in range(self.p.retries + 1):  # at least once
-            resp = sess.get(url, **sesskwargs)
-            if resp.status_code != requests.codes.ok:
-                continue
-
-            txt = resp.text
-            i = txt.find('CrumbStore')
-            if i == -1:
-                continue
-            i = txt.find('crumb', i)
-            if i == -1:
-                continue
-            istart = txt.find('"', i + len('crumb') + 1)
-            if istart == -1:
-                continue
-            istart += 1
-            iend = txt.find('"', istart)
-            if iend == -1:
-                continue
-
-            crumb = txt[istart:iend]
-            crumb = crumb.encode('ascii').decode('unicode-escape')
-            break
-
-        if crumb is None:
-            self.error = 'Crumb not found'
-            self.f = None
-            return
-
-        crumb = urlquote(crumb)
-
-        # urldown/ticker?period1=posix1&period2=posix2&interval=1d&events=history&crumb=crumb
-
-        # Try to download
-        urld = '{}/{}'.format(self.p.urldown, self.p.dataname)
-
-        urlargs = []
-        posix = date(1970, 1, 1)
-        if self.p.todate is not None:
-            period2 = (self.p.todate.date() - posix).total_seconds()
-            urlargs.append('period2={}'.format(int(period2)))
-
-        if self.p.todate is not None:
-            period1 = (self.p.fromdate.date() - posix).total_seconds()
-            urlargs.append('period1={}'.format(int(period1)))
-
-        intervals = {
-            bt.TimeFrame.Days: '1d',
-            bt.TimeFrame.Weeks: '1wk',
-            bt.TimeFrame.Months: '1mo',
-        }
-
-        urlargs.append('interval={}'.format(intervals[self.p.timeframe]))
-        urlargs.append('events=history')
-        urlargs.append('crumb={}'.format(crumb))
-
-        urld = '{}?{}'.format(urld, '&'.join(urlargs))
-        f = None
-        for i in range(self.p.retries + 1):  # at least once
-            resp = sess.get(urld, **sesskwargs)
-            if resp.status_code != requests.codes.ok:
-                continue
-
-            ctype = resp.headers['Content-Type']
-            # Cover as many text types as possible for Yahoo changes
-            if not ctype.startswith('text/'):
-                self.error = 'Wrong content type: %s' % ctype
-                continue  # HTML returned? wrong url?
-
-            # buffer everything from the socket into a local buffer
-            try:
-                # r.encoding = 'UTF-8'
-                f = io.StringIO(resp.text, newline=None)
-            except Exception:
-                continue  # try again if possible
-
-            break
-
-        self.f = f
+    def __init__(self):
+        super().__init__()
+        self._df: pd.DataFrame = None
+        self._idx: int = -1
 
     def start(self):
-        self.start_v7()
+        if not self.p.fromdate or not self.p.todate:
+            raise ValueError("YahooFinanceData requires 'fromdate' and 'todate'")
 
-        # Prepared a "path" file -  CSV Parser can take over
-        super(YahooFinanceData, self).start()
+        fetcher = self.p.fetcher or YahooFetcher()
+
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        self._bars = loop.run_until_complete(
+            fetcher.fetch_data(
+                symbol=self.p.dataname,
+                start=self.p.fromdate,
+                end=self.p.todate,
+                timeframe='1d'  # Map as needed
+            )
+        )
+        self._idx = -1
+
+    def _load(self):
+        self._idx += 1
+        if self._idx >= len(self._bars):
+            return False
+
+        bar = self._bars.bars[self._idx]
+        bar_dict = bar.to_lines()
+
+        # Cleaner assignment
+        for key, value in bar_dict.items():
+            getattr(self.lines, key)[0] = value
+
+        return True
 
 
 class YahooFinance(feed.CSVFeedBase):

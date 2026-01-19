@@ -35,7 +35,6 @@ import backtrader.indicators as btind
 
 class TestStrategy(bt.Strategy):
     __test__ = False
-    __test__ = False
 
     params = (
         ('period', 15),
